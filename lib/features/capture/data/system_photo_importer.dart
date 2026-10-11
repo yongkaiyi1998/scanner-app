@@ -265,6 +265,9 @@ class SystemPhotoImporter implements PhotoImporter {
     }
   }
 
+  @override
+  Future<ImportedPhoto> copyPhoto(XFile input) => _copyAndValidate(input);
+
   Future<ImportedPhoto> _validate(File file) async {
     ui.ImmutableBuffer? buffer;
     ui.ImageDescriptor? descriptor;

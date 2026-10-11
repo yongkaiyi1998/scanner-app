@@ -1,8 +1,18 @@
 import 'dart:async';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:scanner_app/features/capture/photo_importer.dart';
 
 class FakePhotoImporter implements PhotoImporter {
+  final List<String> copied = [];
+  @override
+  Future<ImportedPhoto> copyPhoto(XFile input) async {
+    copied.add(input.path);
+    if (failure != null) throw failure!;
+    return nextPhoto ??
+        ImportedPhoto(path: input.path, width: 100, height: 200);
+  }
+
   ImportedPhoto? nextPhoto;
   ImportedPhoto? recoveredPhoto;
   PhotoImportException? failure;

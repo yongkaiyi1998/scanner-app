@@ -1,3 +1,5 @@
+import 'package:image_picker/image_picker.dart';
+
 enum ImportFailure {
   unreadable,
   invalidImage,
@@ -40,6 +42,7 @@ class ImportedPhoto {
 }
 
 abstract interface class PhotoImporter {
+  Future<ImportedPhoto> copyPhoto(XFile input);
   Future<ImportedPhoto?> recoverLostPhoto();
   Future<ImportedPhoto?> importPhoto();
   Future<void> discard(ImportedPhoto photo);

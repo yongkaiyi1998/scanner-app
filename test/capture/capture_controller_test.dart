@@ -26,7 +26,10 @@ void main() {
 
   test('restores a recovered selection on startup', () async {
     importer.recoveredPhoto = photo;
-    expect(await container.read(captureControllerProvider.future), same(photo));
+    expect(
+      (await container.read(captureControllerProvider.future))?.pages.single,
+      same(photo),
+    );
     expect(importer.recoveries, 1);
   });
 
@@ -54,7 +57,10 @@ void main() {
     importer.failure = null;
     importer.nextPhoto = photo;
     await controller.importPhoto();
-    expect(container.read(captureControllerProvider).value, same(photo));
+    expect(
+      container.read(captureControllerProvider).value?.pages.single,
+      same(photo),
+    );
     await controller.importPhoto();
     expect(importer.calls, 2);
     await controller.discard();
