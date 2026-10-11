@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scanner_app/app/app_routes.dart';
 import 'package:scanner_app/app/app_theme.dart';
 
@@ -7,11 +8,13 @@ class ScannerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Document Scanner',
-      theme: AppTheme.light,
-      initialRoute: AppRoutes.home,
-      onGenerateRoute: AppRoutes.generate,
+    return ProviderScope(
+      child: MaterialApp(
+        title: 'Document Scanner',
+        theme: AppTheme.light,
+        initialRoute: AppRoutes.home,
+        onGenerateRoute: AppRoutes.generate,
+      ),
     );
   }
 }
