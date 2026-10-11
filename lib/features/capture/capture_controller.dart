@@ -16,14 +16,14 @@ final documentScannerProvider = Provider<DocumentScanner>(
 );
 
 class CapturePreview {
-  CapturePreview(List<ImportedPhoto> pages, {this.isScan = false})
+  CapturePreview(List<DocumentPage> pages, {this.isScan = false})
     : pages = List.unmodifiable(pages);
-  final List<ImportedPhoto> pages;
+  final List<DocumentPage> pages;
   final bool isScan;
 }
 
 class CaptureController extends AsyncNotifier<CapturePreview?> {
-  final List<ImportedPhoto> _pendingCleanup = [];
+  final List<DocumentPage> _pendingCleanup = [];
   @override
   Future<CapturePreview?> build() async {
     final photo = await ref.read(photoImporterProvider).recoverLostPhoto();

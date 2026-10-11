@@ -41,30 +41,33 @@ class _CapturePanelState extends ConsumerState<CapturePanel> {
           const SizedBox(height: 12),
           SizedBox(
             height: 280,
-            child: Image.file(
-              File(photo.path),
-              fit: BoxFit.contain,
-              cacheWidth: math.max(
-                1,
-                (photo.width *
-                        math.min(
-                          1.0,
-                          1024 / math.max(photo.width, photo.height),
-                        ))
-                    .round(),
-              ),
-              cacheHeight: math.max(
-                1,
-                (photo.height *
-                        math.min(
-                          1.0,
-                          1024 / math.max(photo.width, photo.height),
-                        ))
-                    .round(),
-              ),
-              semanticLabel: 'Imported document image',
-              errorBuilder: (context, error, stack) => const Text(
-                'The preview is no longer readable. Please import the image again.',
+            child: RotatedBox(
+              quarterTurns: photo.rotationQuarterTurns,
+              child: Image.file(
+                File(photo.path),
+                fit: BoxFit.contain,
+                cacheWidth: math.max(
+                  1,
+                  (photo.width *
+                          math.min(
+                            1.0,
+                            1024 / math.max(photo.width, photo.height),
+                          ))
+                      .round(),
+                ),
+                cacheHeight: math.max(
+                  1,
+                  (photo.height *
+                          math.min(
+                            1.0,
+                            1024 / math.max(photo.width, photo.height),
+                          ))
+                      .round(),
+                ),
+                semanticLabel: 'Imported document image',
+                errorBuilder: (context, error, stack) => const Text(
+                  'The preview is no longer readable. Please import the image again.',
+                ),
               ),
             ),
           ),

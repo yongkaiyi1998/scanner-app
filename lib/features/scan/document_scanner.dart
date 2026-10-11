@@ -29,5 +29,5 @@ class ScanException implements Exception {
 }
 
 abstract interface class DocumentScanner {
-  Future<List<ImportedPhoto>?> scan();
+  Future<List<DocumentPage>?> scan();
 }

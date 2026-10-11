@@ -1,5 +1,8 @@
 import 'package:image_picker/image_picker.dart';
 
+import 'package:scanner_app/features/documents/domain/document_page.dart';
+export 'package:scanner_app/features/documents/domain/document_page.dart';
+
 enum ImportFailure {
   unreadable,
   invalidImage,
@@ -30,20 +33,13 @@ class PhotoImportException implements Exception {
   String toString() => message;
 }
 
-class ImportedPhoto {
-  const ImportedPhoto({
-    required this.path,
-    required this.width,
-    required this.height,
-  });
-  final String path;
-  final int width;
-  final int height;
-}
-
 abstract interface class PhotoImporter {
-  Future<ImportedPhoto> copyPhoto(XFile input);
-  Future<ImportedPhoto?> recoverLostPhoto();
-  Future<ImportedPhoto?> importPhoto();
-  Future<void> discard(ImportedPhoto photo);
+  Future<DocumentPage> copyPhoto(
+    XFile input, {
+    PageSource source = PageSource.gallery,
+    int sortOrder = 0,
+  });
+  Future<DocumentPage?> recoverLostPhoto();
+  Future<DocumentPage?> importPhoto();
+  Future<void> discard(DocumentPage photo);
 }

@@ -93,7 +93,7 @@ class SystemPhotoImporter implements PhotoImporter {
 
   late final Future<LostDataResponse> Function() _retrieveLostData;
   Future<Directory>? _workingDirectory;
-  Future<ImportedPhoto?>? _recovery;
+  Future<DocumentPage?>? _recovery;
 
   Future<Directory> _prepare() => _workingDirectory ??= _prepareDirectory();
   Future<Directory> _prepareDirectory() async {
@@ -140,8 +140,8 @@ class SystemPhotoImporter implements PhotoImporter {
   }
 
   @override
-  Future<ImportedPhoto?> recoverLostPhoto() => _recovery ??= _recover();
-  Future<ImportedPhoto?> _recover() async {
+  Future<DocumentPage?> recoverLostPhoto() => _recovery ??= _recover();
+  Future<DocumentPage?> _recover() async {
     await _prepare();
     try {
       final response = await _retrieveLostData();
@@ -159,7 +159,7 @@ class SystemPhotoImporter implements PhotoImporter {
   }
 
   @override
-  Future<ImportedPhoto?> importPhoto() async {
+  Future<DocumentPage?> importPhoto() async {
     await _prepare();
     try {
       final selection = await _picker.pickImage(
@@ -185,7 +185,11 @@ class SystemPhotoImporter implements PhotoImporter {
             : ImportFailure.unavailable,
       );
 
-  Future<ImportedPhoto> _copyAndValidate(XFile selection) async {
+  Future<DocumentPage> _copyAndValidate(
+    XFile selection, {
+    PageSource source = PageSource.gallery,
+    int sortOrder = 0,
+  }) async {
     final int length;
     try {
       length = await selection.length();
@@ -250,8 +254,8 @@ class SystemPhotoImporter implements PhotoImporter {
       if (copied == 0 || copied != length) {
         throw const PhotoImportException(ImportFailure.unreadable);
       }
-      final photo = await _validate(file);
-      _owned[photo.path] = session;
+      final photo = await _validate(file, session, copied, source, sortOrder);
+      _owned[photo.id] = session;
       return photo;
     } catch (_) {
       try {
@@ -266,9 +270,19 @@ class SystemPhotoImporter implements PhotoImporter {
   }
 
   @override
-  Future<ImportedPhoto> copyPhoto(XFile input) => _copyAndValidate(input);
+  Future<DocumentPage> copyPhoto(
+    XFile input, {
+    PageSource source = PageSource.gallery,
+    int sortOrder = 0,
+  }) => _copyAndValidate(input, source: source, sortOrder: sortOrder);
 
-  Future<ImportedPhoto> _validate(File file) async {
+  Future<DocumentPage> _validate(
+    File file,
+    Directory session,
+    int byteLength,
+    PageSource source,
+    int sortOrder,
+  ) async {
     ui.ImmutableBuffer? buffer;
     ui.ImageDescriptor? descriptor;
     ui.Codec? codec;
@@ -290,10 +304,18 @@ class SystemPhotoImporter implements PhotoImporter {
         targetHeight: math.max(1, (descriptor.height * scale).round()),
       );
       image = (await codec.getNextFrame()).image;
-      return ImportedPhoto(
+      final sessionId = session.uri.pathSegments
+          .where((s) => s.isNotEmpty)
+          .last;
+      return DocumentPage(
+        id: sessionId,
         path: file.path,
         width: descriptor.width,
         height: descriptor.height,
+        byteLength: byteLength,
+        source: source,
+        sortOrder: sortOrder,
+        ownership: PageFileOwnership(sessionId: sessionId),
       );
     } on PhotoImportException {
       rethrow;
@@ -308,14 +330,21 @@ class SystemPhotoImporter implements PhotoImporter {
   }
 
   @override
-  Future<void> discard(ImportedPhoto photo) async {
-    final session = _owned[photo.path];
-    if (session == null) return;
+  Future<void> discard(DocumentPage photo) async {
+    final session = _owned[photo.id];
+    if (session == null ||
+        photo.ownership?.sessionId != photo.id ||
+        photo.ownership?.lifetime != PageFileLifetime.previewTemporary ||
+        photo.sourcePath != photo.workingPath ||
+        photo.workingPath !=
+            '${session.path}${Platform.pathSeparator}source.image') {
+      return;
+    }
     try {
       await _deleteSession(await _prepare(), session);
       await _leases.remove(session.path)?.close();
       _activeSessions.remove(session.path);
-      _owned.remove(photo.path);
+      _owned.remove(photo.id);
     } on FileSystemException {
       throw const PhotoImportException(ImportFailure.storage);
     }

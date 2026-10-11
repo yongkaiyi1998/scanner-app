@@ -7,8 +7,18 @@ import '../capture/fake_photo_importer.dart';
 import 'fake_document_scanner.dart';
 
 void main() {
-  const first = ImportedPhoto(path: 'owned-first', width: 1, height: 1);
-  const second = ImportedPhoto(path: 'owned-second', width: 1, height: 1);
+  const first = DocumentPage(
+    id: 'owned-first',
+    path: 'owned-first',
+    width: 1,
+    height: 1,
+  );
+  const second = DocumentPage(
+    id: 'owned-second',
+    path: 'owned-second',
+    width: 1,
+    height: 1,
+  );
   late FakeDocumentScanner scanner;
   late FakePhotoImporter importer;
   late ProviderContainer container;

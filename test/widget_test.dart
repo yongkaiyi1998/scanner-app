@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,7 +89,8 @@ void main() {
   testWidgets('successful import reaches bounded preview and can close', (
     tester,
   ) async {
-    importer.nextPhoto = const ImportedPhoto(
+    importer.nextPhoto = const DocumentPage(
+      id: 'missing-test-preview.image',
       path: 'missing-test-preview.image',
       width: 6000,
       height: 4000,
@@ -108,17 +111,53 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'preview applies additional rotation separately from decoder EXIF',
+    (tester) async {
+      importer.nextPhoto = const DocumentPage(
+        id: 'rotation-test',
+        path: 'missing-rotation-preview.image',
+        width: 32,
+        height: 16,
+        rotationQuarterTurns: 1,
+      );
+      await mount(tester);
+      await tester.tap(find.text('Import from Gallery'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<RotatedBox>(find.byType(RotatedBox)).quarterTurns,
+        1,
+      );
+      final image = tester.widget<Image>(find.byType(Image));
+      final fallback =
+          image.errorBuilder!(
+                tester.element(find.byType(Image)),
+                const FileSystemException('Unreadable test image'),
+                StackTrace.empty,
+              )
+              as Text;
+      expect(fallback.data, contains('preview is no longer readable'));
+      await tester.ensureVisible(find.text('Close preview'));
+      await tester.tap(find.text('Close preview'));
+      await tester.pumpAndSettle();
+      expect(importer.discarded, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('scanned pages reuse preview navigation and all close together', (
     tester,
   ) async {
     final scanner = FakeDocumentScanner()
       ..pages = [
-        const ImportedPhoto(
+        const DocumentPage(
+          id: 'missing-scan-one',
           path: 'missing-scan-one',
           width: 1000,
           height: 1500,
         ),
-        const ImportedPhoto(
+        const DocumentPage(
+          id: 'missing-scan-two',
           path: 'missing-scan-two',
           width: 1000,
           height: 1500,

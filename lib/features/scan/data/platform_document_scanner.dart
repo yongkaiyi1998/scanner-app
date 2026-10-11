@@ -14,7 +14,7 @@ class PlatformDocumentScanner implements DocumentScanner {
   final PhotoImporter importer;
   final MethodChannel channel;
   final bool isAndroid;
-  final List<ImportedPhoto> _pendingCleanup = [];
+  final List<DocumentPage> _pendingCleanup = [];
 
   Future<void> _cleanup() async {
     while (_pendingCleanup.isNotEmpty) {
@@ -24,11 +24,11 @@ class PlatformDocumentScanner implements DocumentScanner {
   }
 
   @override
-  Future<List<ImportedPhoto>?> scan() async {
+  Future<List<DocumentPage>?> scan() async {
     if (!isAndroid) throw const ScanException(ScanFailure.unsupported);
     await _cleanup();
     List<String> tokens = [];
-    final copied = <ImportedPhoto>[];
+    final copied = <DocumentPage>[];
     try {
       final raw = await channel.invokeMethod<Object?>('scan');
       if (raw == null) return null;
@@ -44,8 +44,14 @@ class PlatformDocumentScanner implements DocumentScanner {
       if (tokens.toSet().length != tokens.length) {
         throw const ScanException(ScanFailure.invalidResult);
       }
-      for (final token in tokens) {
-        copied.add(await importer.copyPhoto(_ScannerInput(channel, token)));
+      for (var index = 0; index < tokens.length; index++) {
+        copied.add(
+          await importer.copyPhoto(
+            _ScannerInput(channel, tokens[index]),
+            source: PageSource.nativeScanner,
+            sortOrder: index,
+          ),
+        );
       }
       return List.unmodifiable(copied);
     } on PlatformException catch (error) {

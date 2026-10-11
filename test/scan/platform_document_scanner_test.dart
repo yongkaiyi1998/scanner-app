@@ -12,11 +12,15 @@ import 'package:scanner_app/features/scan/document_scanner.dart';
 class RollbackImporter extends FakePhotoImporter {
   int copies = 0;
   @override
-  Future<ImportedPhoto> copyPhoto(XFile input) async {
+  Future<DocumentPage> copyPhoto(
+    XFile input, {
+    PageSource source = PageSource.gallery,
+    int sortOrder = 0,
+  }) async {
     if (++copies == 2) {
       throw const PhotoImportException(ImportFailure.invalidImage);
     }
-    return super.copyPhoto(input);
+    return super.copyPhoto(input, source: source, sortOrder: sortOrder);
   }
 }
 
@@ -102,6 +106,11 @@ void main() {
     final pages = (await scanner.scan())!;
     expect(pages.length, 1);
     expect(pages.single.width, 1);
+    expect(pages.single.source, PageSource.nativeScanner);
+    expect(pages.single.sortOrder, 0);
+    expect(pages.single.byteLength, image.length);
+    expect(pages.single.sourcePath, pages.single.workingPath);
+    expect(pages.single.ownership!.sessionId, pages.single.id);
     expect(await File(pages.single.path).readAsBytes(), image);
     expect(releases, 1);
     await importer.discard(pages.single);
@@ -164,6 +173,12 @@ void main() {
       expect(pages.length, 2);
       expect(reads.toList(), [first, second]);
       expect(pages.first.path, isNot(pages.last.path));
+      expect(pages.first.id, isNot(pages.last.id));
+      expect(pages.map((page) => page.sortOrder), [0, 1]);
+      expect(
+        pages.map((page) => page.source),
+        everyElement(PageSource.nativeScanner),
+      );
       for (final page in pages) {
         await importer.discard(page);
       }
@@ -187,6 +202,23 @@ void main() {
       isEmpty,
     );
     expect(releases, 1);
+  });
+
+  test('failed batch cannot remove a previously valid gallery page', () async {
+    final previous = await importer.copyPhoto(XFile.fromData(image));
+    result = [first, second];
+    invalid = second;
+    await expectLater(scanner.scan(), throwsA(isA<PhotoImportException>()));
+    expect(await File(previous.path).readAsBytes(), image);
+    final remaining = await Directory(
+      '${sandbox.path}/capture_working',
+    ).list().toList();
+    expect(remaining.length, 1);
+    expect(
+      await remaining.single.resolveSymbolicLinks(),
+      File(previous.path).parent.path,
+    );
+    await importer.discard(previous);
   });
 
   test(

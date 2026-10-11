@@ -6,37 +6,48 @@ import 'package:scanner_app/features/capture/photo_importer.dart';
 class FakePhotoImporter implements PhotoImporter {
   final List<String> copied = [];
   @override
-  Future<ImportedPhoto> copyPhoto(XFile input) async {
+  Future<DocumentPage> copyPhoto(
+    XFile input, {
+    PageSource source = PageSource.gallery,
+    int sortOrder = 0,
+  }) async {
     copied.add(input.path);
     if (failure != null) throw failure!;
     return nextPhoto ??
-        ImportedPhoto(path: input.path, width: 100, height: 200);
+        DocumentPage(
+          id: input.path,
+          path: input.path,
+          width: 100,
+          height: 200,
+          source: source,
+          sortOrder: sortOrder,
+        );
   }
 
-  ImportedPhoto? nextPhoto;
-  ImportedPhoto? recoveredPhoto;
+  DocumentPage? nextPhoto;
+  DocumentPage? recoveredPhoto;
   PhotoImportException? failure;
   PhotoImportException? cleanupFailure;
-  Completer<ImportedPhoto?>? pending;
+  Completer<DocumentPage?>? pending;
   int calls = 0;
   int recoveries = 0;
   int discarded = 0;
 
   @override
-  Future<ImportedPhoto?> recoverLostPhoto() async {
+  Future<DocumentPage?> recoverLostPhoto() async {
     recoveries++;
     return recoveredPhoto;
   }
 
   @override
-  Future<ImportedPhoto?> importPhoto() async {
+  Future<DocumentPage?> importPhoto() async {
     calls++;
     if (failure != null) throw failure!;
     return pending == null ? nextPhoto : await pending!.future;
   }
 
   @override
-  Future<void> discard(ImportedPhoto photo) async {
+  Future<void> discard(DocumentPage photo) async {
     if (cleanupFailure != null) throw cleanupFailure!;
     discarded++;
   }

@@ -8,7 +8,8 @@ import 'package:scanner_app/features/capture/photo_importer.dart';
 import 'fake_photo_importer.dart';
 
 void main() {
-  const photo = ImportedPhoto(
+  const photo = DocumentPage(
+    id: 'owned/source.image',
     path: 'owned/source.image',
     width: 100,
     height: 200,
@@ -35,7 +36,7 @@ void main() {
 
   test('serializes import taps and cancellation returns idle', () async {
     await container.read(captureControllerProvider.future);
-    importer.pending = Completer<ImportedPhoto?>();
+    importer.pending = Completer<DocumentPage?>();
     final controller = container.read(captureControllerProvider.notifier);
     final operation = controller.importPhoto();
     await controller.importPhoto();

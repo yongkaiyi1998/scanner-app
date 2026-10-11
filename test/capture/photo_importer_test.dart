@@ -84,6 +84,13 @@ void main() {
       );
       expect(photo.path, endsWith('source.image'));
       expect(photo.width, 1);
+      expect(photo.id, startsWith('import_'));
+      expect(photo.source, PageSource.gallery);
+      expect(photo.sortOrder, 0);
+      expect(photo.sourcePath, photo.workingPath);
+      expect(photo.byteLength, png.length);
+      expect(photo.ownership!.sessionId, photo.id);
+      expect(photo.ownership!.lifetime, PageFileLifetime.previewTemporary);
       expect(await File(photo.path).readAsBytes(), png);
       await source.delete();
       expect(await File(photo.path).readAsBytes(), png);
@@ -283,7 +290,12 @@ void main() {
       final external = File('${sandbox.path}/do_not_delete.png');
       await external.writeAsBytes(png);
       await importer.discard(
-        ImportedPhoto(path: external.path, width: 1, height: 1),
+        DocumentPage(
+          id: external.path,
+          path: external.path,
+          width: 1,
+          height: 1,
+        ),
       );
       expect(await external.exists(), isTrue);
     },
