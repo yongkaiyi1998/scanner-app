@@ -1,11 +1,10 @@
-import 'dart:io';
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scanner_app/features/capture/capture_controller.dart';
 import 'package:scanner_app/features/capture/photo_importer.dart';
 import 'package:scanner_app/features/scan/document_scanner.dart';
+import 'package:scanner_app/features/editor/presentation/editor_screen.dart';
+import 'package:scanner_app/features/editor/presentation/document_page_image.dart';
 
 class CapturePanel extends ConsumerStatefulWidget {
   const CapturePanel({super.key});
@@ -17,6 +16,34 @@ class CapturePanel extends ConsumerStatefulWidget {
 class _CapturePanelState extends ConsumerState<CapturePanel> {
   int _pageIndex = 0;
   CapturePreview? _previousPreview;
+
+  Future<void> _edit(DocumentPage page, int pageCount) async {
+    final edited = await Navigator.push<DocumentPage>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditorScreen(
+          page: page,
+          pageNumber: _pageIndex + 1,
+          pageCount: pageCount,
+        ),
+      ),
+    );
+    if (!mounted || edited == null) return;
+    final applied = ref
+        .read(captureControllerProvider.notifier)
+        .applyPageEdit(page, edited);
+    if (applied) {
+      setState(
+        () => _previousPreview = ref.read(captureControllerProvider).value,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The preview changed. Please reopen the page editor.'),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,38 +66,7 @@ class _CapturePanelState extends ConsumerState<CapturePanel> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 280,
-            child: RotatedBox(
-              quarterTurns: photo.rotationQuarterTurns,
-              child: Image.file(
-                File(photo.path),
-                fit: BoxFit.contain,
-                cacheWidth: math.max(
-                  1,
-                  (photo.width *
-                          math.min(
-                            1.0,
-                            1024 / math.max(photo.width, photo.height),
-                          ))
-                      .round(),
-                ),
-                cacheHeight: math.max(
-                  1,
-                  (photo.height *
-                          math.min(
-                            1.0,
-                            1024 / math.max(photo.width, photo.height),
-                          ))
-                      .round(),
-                ),
-                semanticLabel: 'Imported document image',
-                errorBuilder: (context, error, stack) => const Text(
-                  'The preview is no longer readable. Please import the image again.',
-                ),
-              ),
-            ),
-          ),
+          SizedBox(height: 280, child: DocumentPageImage(page: photo)),
           const Text('This preview has not been saved.'),
           if (preview.pages.length > 1)
             Row(
@@ -94,6 +90,13 @@ class _CapturePanelState extends ConsumerState<CapturePanel> {
                 ),
               ],
             ),
+          OutlinedButton.icon(
+            onPressed: state.isLoading
+                ? null
+                : () => _edit(photo, preview.pages.length),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Edit selected page'),
+          ),
           TextButton(
             onPressed: state.isLoading ? null : controller.discard,
             child: const Text('Close preview'),

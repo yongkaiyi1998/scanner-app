@@ -40,6 +40,21 @@ class CaptureController extends AsyncNotifier<CapturePreview?> {
   Future<void> importPhoto() => _capture(scan: false);
   Future<void> scanDocument() => _capture(scan: true);
 
+  bool applyPageEdit(DocumentPage original, DocumentPage edited) {
+    final preview = state.value;
+    if (state.isLoading || state.hasError || preview == null) return false;
+    final index = preview.pages.indexWhere((page) => identical(page, original));
+    if (index < 0 || edited.id != original.id) return false;
+    final pages = preview.pages.toList();
+    // Only edit metadata crosses this boundary, never paths or ownership.
+    pages[index] = original.copyWith(
+      rotationQuarterTurns: edited.rotationQuarterTurns,
+      crop: edited.crop,
+    );
+    state = AsyncData(CapturePreview(pages, isScan: preview.isScan));
+    return true;
+  }
+
   Future<void> _capture({required bool scan}) async {
     if (state.isLoading || (state.value != null && !state.hasError)) return;
     state = const AsyncLoading();
